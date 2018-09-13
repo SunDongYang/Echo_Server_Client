@@ -94,29 +94,29 @@ int main()
 		}
 		//      std::cout<<pollfds.size()<<std::endl;
 		//      std::cout<<nready<<std::endl;
-			for (PollFdList::iterator it = pollfds.begin() + 1; it != pollfds.end() && nready>0; ++it)
-				//第一个套接字一般都是监听套接字，所以从begin()+1开始
+		for (PollFdList::iterator it = pollfds.begin() + 1; it != pollfds.end() && nready>0; ++it)
+		//第一个套接字一般都是监听套接字，所以从begin()+1开始
+		{
+			if (it->revents & POLLIN)//遍历过程发现可读事件
 			{
-				if (it->revents & POLLIN)//遍历过程发现可读事件
+				--nready;
+				connfd = it->fd;
+				char buf[1024] = { 0 };
+				int ret = read(connfd, buf, 1024);
+				if (ret == -1)
+					ERR_EXIT("read");
+				if (ret == 0)//如果等于0，说明对方关闭了套接字
 				{
-					--nready;
-					connfd = it->fd;
-					char buf[1024] = { 0 };
-					int ret = read(connfd, buf, 1024);
-					if (ret == -1)
-						ERR_EXIT("read");
-					if (ret == 0)//如果等于0，说明对方关闭了套接字
-					{
-						std::cout << "client close" << std::endl;
-						it = pollfds.erase(it);
-						--it;
-						close(connfd);
-						continue;
-					}
-					std::cout << buf;
-					write(connfd, buf, strlen(buf));
+					std::cout << "client close" << std::endl;
+					it = pollfds.erase(it);
+					--it;
+					close(connfd);
+					continue;
 				}
+				std::cout << buf;
+				write(connfd, buf, strlen(buf));
 			}
+		}
 	}
 	return 0;
 }
